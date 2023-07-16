@@ -18,6 +18,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Timer? timer;
   String searchInputValue = '';
   List<Movie> movies = [];
+  bool isLoading = false;
 
   Future<void> searchMovieByInput() async {
     final List<Movie> newMovies =
@@ -35,9 +36,16 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void searchInputChanged(String value) {
-    setState(() => movies = []);
+    setState(() {
+      searchInputValue = value;
+      movies = [];
 
-    searchInputValue = value;
+      isLoading = true;
+
+      if (searchInputValue.isEmpty) {
+        isLoading = false;
+      }
+    });
 
     setTimerToSearch();
   }
@@ -50,6 +58,15 @@ class _SearchScreenState extends State<SearchScreen> {
         style: Theme.of(context).textTheme.bodyMedium,
       ),
     );
+
+    if (isLoading && movies.isEmpty) {
+      content = Center(
+        child: Text(
+          'Loading...',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
 
     if (movies.isNotEmpty) {
       content = MoviesList(movies);

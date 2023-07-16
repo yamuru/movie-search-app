@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_search_app/api/movies_api.dart';
 import 'package:movie_search_app/models/movie_model.dart';
+import 'package:movie_search_app/providers/movies_provider.dart';
 import 'package:transparent_image/transparent_image.dart';
 
 enum Source {
@@ -8,43 +10,41 @@ enum Source {
   db,
 }
 
-class MovieDetailsScreen extends StatefulWidget {
+class MovieDetailsScreen extends ConsumerStatefulWidget {
   const MovieDetailsScreen({
     super.key,
-    required this.movie,
+    required this.imdbID,
     required this.source,
   });
 
-  final Movie movie;
+  final String imdbID;
   final Source source;
 
   @override
-  State<MovieDetailsScreen> createState() {
+  ConsumerState<MovieDetailsScreen> createState() {
     return _MovieDetailsScreenState();
   }
 }
 
-class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
+class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
   late Movie movie;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-
     switch (widget.source) {
       case Source.search:
         movieDetailsFromApi();
       case Source.db:
         movieDetailsFromDb();
       default:
-        movie =
-            const Movie(imdbID: '', title: 'Movie detaild can\'t be fetched');
+        movie = Movie(imdbID: '', title: 'Movie details can\'t be fetched');
     }
   }
 
   void movieDetailsFromApi() async {
-    MoviesApi.movieDetailsById(widget.movie.imdbID).then((movieFromApi) {
+    MoviesApi.movieDetailsById(widget.imdbID).then((movieFromApi) {
       setState(() {
         movie = movieFromApi;
         isLoading = false;
@@ -53,7 +53,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   }
 
   void movieDetailsFromDb() async {
-    return;
+    List<Movie> movies = ref.read(moviesProvider);
+    Movie movieDetails = movies.firstWhere((el) => el.imdbID == widget.imdbID);
+    setState(() {
+      movie = movieDetails;
+      isLoading = false;
+    });
   }
 
   Widget descriptionRow(field, value,
@@ -136,7 +141,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   children: [
                     Ink(
                       decoration: ShapeDecoration(
-                        color: Theme.of(context).focusColor,
+                        color: movie.isWatchLater
+                            ? const Color.fromARGB(150, 255, 87, 34)
+                            : Theme.of(context).focusColor,
                         shape: const BeveledRectangleBorder(
                           borderRadius: BorderRadius.all(
                             Radius.circular(6),
@@ -145,12 +152,22 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.watch_later_outlined, size: 25),
-                        onPressed: () {},
+                        onPressed: () {
+                          setState(() {
+                            movie.isWatchLater = !movie.isWatchLater;
+                          });
+                          ref.read(moviesProvider.notifier).updateMovie(
+                                movie,
+                                isWatchLater: movie.isWatchLater,
+                              );
+                        },
                       ),
                     ),
                     Ink(
                       decoration: ShapeDecoration(
-                        color: Theme.of(context).focusColor,
+                        color: movie.haveSeen
+                            ? const Color.fromARGB(150, 255, 87, 34)
+                            : Theme.of(context).focusColor,
                         shape: const BeveledRectangleBorder(
                           borderRadius: BorderRadius.all(
                             Radius.circular(6),
@@ -159,7 +176,15 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.visibility_outlined, size: 25),
-                        onPressed: () {},
+                        onPressed: () {
+                          setState(() {
+                            movie.haveSeen = !movie.haveSeen;
+                            ref.read(moviesProvider.notifier).updateMovie(
+                                  movie,
+                                  haveSeen: movie.haveSeen,
+                                );
+                          });
+                        },
                       ),
                     ),
                   ],

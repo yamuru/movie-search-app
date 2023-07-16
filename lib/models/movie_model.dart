@@ -1,5 +1,5 @@
 class Movie {
-  const Movie({
+  Movie({
     required this.imdbID,
     this.title = '',
     this.year = '',
@@ -33,7 +33,29 @@ class Movie {
   final String rated;
   final String poster;
   final String plot;
-  final bool isWatchLater;
-  final bool haveSeen;
-  final int userRating;
+  bool isWatchLater;
+  bool haveSeen;
+  int? userRating;
+
+  Movie copyWith({newIsWatchLater, newHaveSeen, newUserRating}) {
+    return Movie(
+      imdbID: imdbID,
+      title: title,
+      year: year,
+      country: country,
+      genre: genre,
+      runtime: runtime,
+      directors: directors,
+      writers: writers,
+      actors: actors,
+      ratings: ratings,
+      boxoffice: boxoffice,
+      rated: rated,
+      poster: poster,
+      plot: plot,
+      isWatchLater: newIsWatchLater ?? isWatchLater,
+      haveSeen: newHaveSeen ?? haveSeen,
+      userRating: newUserRating ?? userRating,
+    );
+  }
 }

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_search_app/models/movie_model.dart';
+import 'package:movie_search_app/providers/movies_provider.dart';
 import 'package:movie_search_app/screens/movie_details_screen.dart';
 import 'package:transparent_image/transparent_image.dart';
 
-class MoviesListItem extends StatelessWidget {
+class MoviesListItem extends ConsumerWidget {
   const MoviesListItem(this.movie, {super.key});
 
   final Movie movie;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       shape: RoundedRectangleBorder(
@@ -18,15 +20,19 @@ class MoviesListItem extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       elevation: 4,
       child: InkWell(
-        onTap: () {
+        onTap: () async {
+          List<Movie> movies = ref.read(moviesProvider);
+          bool movieCanBeFoundInDb =
+              movies.indexWhere((el) => el.imdbID == movie.imdbID) >= 0;
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (ctx) => MovieDetailsScreen(
-                movie: Movie(imdbID: movie.imdbID),
-                source: Source.search,
+                imdbID: movie.imdbID,
+                source: movieCanBeFoundInDb ? Source.db : Source.search,
               ),
             ),
           );
+          FocusScope.of(context).requestFocus(FocusNode());
         },
         child: Container(
           color: Theme.of(context).highlightColor,
