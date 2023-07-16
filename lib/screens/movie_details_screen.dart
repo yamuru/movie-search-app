@@ -3,22 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_search_app/api/movies_api.dart';
 import 'package:movie_search_app/models/movie_model.dart';
 import 'package:movie_search_app/providers/movies_provider.dart';
+import 'package:movie_search_app/widgets/icon_button.dart';
+import 'package:movie_search_app/widgets/movie_info.dart';
 import 'package:transparent_image/transparent_image.dart';
-
-enum Source {
-  search,
-  db,
-}
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
   const MovieDetailsScreen({
     super.key,
     required this.imdbID,
-    required this.source,
   });
 
   final String imdbID;
-  final Source source;
 
   @override
   ConsumerState<MovieDetailsScreen> createState() {
@@ -33,13 +28,15 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    switch (widget.source) {
-      case Source.search:
-        movieDetailsFromApi();
-      case Source.db:
-        movieDetailsFromDb();
-      default:
-        movie = Movie(imdbID: '', title: 'Movie details can\'t be fetched');
+
+    List<Movie> movies = ref.read(moviesProvider);
+    bool movieCanBeFoundInDb =
+        movies.indexWhere((el) => el.imdbID == widget.imdbID) >= 0;
+
+    if (movieCanBeFoundInDb) {
+      movieDetailsFromDb();
+    } else {
+      movieDetailsFromApi();
     }
   }
 
@@ -61,38 +58,6 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
     });
   }
 
-  Widget descriptionRow(field, value,
-      {double verticalPadding = 6, double valueWidth = 200}) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: verticalPadding),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$field:',
-            textAlign: TextAlign.left,
-            softWrap: true,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 5,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const Spacer(),
-          SizedBox(
-            width: valueWidth,
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              softWrap: true,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 4,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     Widget content = Center(
@@ -101,6 +66,12 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
         style: Theme.of(context).textTheme.bodyLarge,
       ),
     );
+
+    final Map<String, String> ratings = {};
+
+    for (int i = 0; i < movie.ratings.length; i++) {
+      ratings[movie.ratings[i]['Source']] = movie.ratings[i]['Value'];
+    }
 
     if (!isLoading) {
       content = Center(
@@ -139,72 +110,60 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Ink(
-                      decoration: ShapeDecoration(
-                        color: movie.isWatchLater
-                            ? const Color.fromARGB(150, 255, 87, 34)
-                            : Theme.of(context).focusColor,
-                        shape: const BeveledRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(6),
-                          ),
-                        ),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.watch_later_outlined, size: 25),
-                        onPressed: () {
-                          setState(() {
-                            movie.isWatchLater = !movie.isWatchLater;
-                          });
+                    IcButton(
+                      isActive: movie.isWatchLater,
+                      icon: Icons.watch_later_outlined,
+                      iconWhenActive: Icons.watch_later,
+                      onPressed: () {
+                        setState(() {
+                          movie.isWatchLater = !movie.isWatchLater;
+                        });
+                        ref.read(moviesProvider.notifier).updateMovie(
+                              movie,
+                              isWatchLater: movie.isWatchLater,
+                            );
+                      },
+                    ),
+                    IcButton(
+                      isActive: movie.haveSeen,
+                      icon: Icons.visibility_outlined,
+                      iconWhenActive: Icons.visibility,
+                      onPressed: () {
+                        setState(() {
+                          movie.haveSeen = !movie.haveSeen;
                           ref.read(moviesProvider.notifier).updateMovie(
                                 movie,
-                                isWatchLater: movie.isWatchLater,
+                                haveSeen: movie.haveSeen,
                               );
-                        },
-                      ),
-                    ),
-                    Ink(
-                      decoration: ShapeDecoration(
-                        color: movie.haveSeen
-                            ? const Color.fromARGB(150, 255, 87, 34)
-                            : Theme.of(context).focusColor,
-                        shape: const BeveledRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(6),
-                          ),
-                        ),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.visibility_outlined, size: 25),
-                        onPressed: () {
-                          setState(() {
-                            movie.haveSeen = !movie.haveSeen;
-                            ref.read(moviesProvider.notifier).updateMovie(
-                                  movie,
-                                  haveSeen: movie.haveSeen,
-                                );
-                          });
-                        },
-                      ),
+                        });
+                      },
                     ),
                   ],
                 ),
                 const SizedBox(height: 38),
-                descriptionRow('Year', movie.year),
-                descriptionRow('Country', movie.country),
-                descriptionRow('Genre', movie.genre),
-                descriptionRow('Director', movie.directors),
-                descriptionRow('Writers', movie.writers),
-                descriptionRow('Actors', movie.actors),
-                descriptionRow('Box Office', movie.boxoffice),
-                descriptionRow('Runtime', movie.runtime),
-                descriptionRow('Rated', movie.rated),
+                MovieInfo(
+                  fields: {
+                    'Year': movie.year,
+                    'Country': movie.country,
+                    'Genre': movie.genre,
+                    'Director': movie.directors,
+                    'Writers': movie.writers,
+                    'Actors': movie.actors,
+                    'Box Office': movie.boxoffice,
+                    'Runtime': movie.runtime,
+                    'Rated': movie.rated,
+                  },
+                  valueWidth: 200,
+                ),
                 const SizedBox(height: 50),
-                Text(
-                  movie.plot,
-                  textAlign: TextAlign.left,
-                  softWrap: true,
-                  style: Theme.of(context).textTheme.titleMedium,
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    movie.plot,
+                    textAlign: TextAlign.left,
+                    softWrap: true,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 const SizedBox(height: 50),
                 SizedBox(
@@ -216,10 +175,10 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                for (int i = 0; i < movie.ratings.length; i++)
-                  descriptionRow(
-                      movie.ratings[i]['Source'], movie.ratings[i]['Value'],
-                      valueWidth: 100),
+                MovieInfo(
+                  fields: ratings,
+                  valueWidth: 100,
+                ),
                 const SizedBox(height: 150),
               ],
             ),
