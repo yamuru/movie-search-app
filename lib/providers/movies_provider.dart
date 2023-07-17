@@ -8,14 +8,10 @@ import 'package:sqflite/sqflite.dart';
 class MoviesProvider extends StateNotifier<List<Movie>> {
   MoviesProvider({this.db}) : super(const []);
 
-  late Database? db;
-
-  Future<Database> getDb() async {
-    return await MoviesDb.getDatabase();
-  }
+  Database? db;
 
   Future<void> loadMovies() async {
-    db ??= await getDb();
+    db ??= await MoviesDb.getDatabase();
 
     final data = await db!.query('movies');
 
@@ -50,7 +46,7 @@ class MoviesProvider extends StateNotifier<List<Movie>> {
     haveSeen = false,
     userRating = 0,
   }) async {
-    db ??= await getDb();
+    db ??= await MoviesDb.getDatabase();
 
     db!.insert('movies', {
       'imdbID': movie.imdbID,
@@ -81,7 +77,7 @@ class MoviesProvider extends StateNotifier<List<Movie>> {
     haveSeen,
     userRating,
   }) async {
-    db ??= await getDb();
+    db ??= await MoviesDb.getDatabase();
 
     if (state.indexWhere((el) => el.imdbID == movie.imdbID) == -1) {
       return addMovie(
