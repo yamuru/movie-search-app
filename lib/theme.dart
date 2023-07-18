@@ -5,9 +5,8 @@ final _colorScheme = ColorScheme.fromSeed(
   seedColor: const Color.fromARGB(255, 255, 87, 34),
 );
 
-final _darkColorScheme = ColorScheme.fromSeed(
+final _darkColorScheme = _colorScheme.copyWith(
   brightness: Brightness.dark,
-  seedColor: const Color.fromARGB(255, 255, 87, 34),
 );
 
 class AppTheme {
