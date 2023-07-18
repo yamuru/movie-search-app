@@ -6,7 +6,7 @@ import 'package:movie_search_app/models/movie_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class MoviesProvider extends StateNotifier<List<Movie>> {
-  MoviesProvider({this.db}) : super(const []);
+  MoviesProvider() : super(const []);
 
   Database? db;
 
