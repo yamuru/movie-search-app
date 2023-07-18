@@ -5,14 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 
-void main() {
+void main() async {
+  await setPreferredOrientations();
+
+  runApp(
+    const ProviderScope(child: App()),
+  );
+}
+
+Future<void> setPreferredOrientations() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  SystemChrome.setPreferredOrientations([
+  return await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
-  ]).then((fn) {
-    runApp(
-      const ProviderScope(child: App()),
-    );
-  });
+  ]);
 }
